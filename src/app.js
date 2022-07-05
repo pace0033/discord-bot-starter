@@ -10,9 +10,16 @@ const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 
 // Add commands Collection as client instance property
 client.commands = new Collection();
-// Create an array with names of each file in commands directory
+// Create an array with names of each file in ./commands directory
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+const commandFiles = fs
+  .readdirSync(commandsPath)
+  .filter((file) => file.endsWith('.js'));
+// Create an array with names of each file in ./events directory
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs
+  .readdirSync(eventsPath)
+  .filter((file) => file.endsWith('.js'));
 
 // Add each file to client commands property
 for (const file of commandFiles) {
@@ -23,31 +30,43 @@ for (const file of commandFiles) {
   client.commands.set(command.data.name, command);
 }
 
-// When the client is ready, run this code (only once)
-client.once('ready', () => {
-  console.log('Discord bot ready!');
-});
+// Listen on the client for every event from ./events
+for (const file of eventFiles) {
+  const filePath = path.join(eventsPath, file);
+  const event = require(filePath);
+  if (event.once) {
+    client.once(event.name, (...args) => event.execute(...args));
+  } else {
+    client.on(event.name, (...args) => event.execute(...args));
+  }
+}
+
+// // When the client is ready, run this code (only once)
+// client.once('ready', () => {
+//   console.log('Discord bot ready!');
+// });
 
 // Respond to slash command interactions
-client.on('interactionCreate', async interaction => {
-  // Exit function if interaction is not a command
-  if (!interaction.isCommand()) return;
+// client.on('interactionCreate', async (interaction) => {
+//   // Exit function if interaction is not a command
+//   if (!interaction.isCommand()) return;
 
-  // Search commands Collection for the interaction's command name
-  const command = client.commands.get(interaction.commandName);
+//   // Search commands Collection for the interaction's command name
+//   const command = client.commands.get(interaction.commandName);
 
-  // Exit function if there was no data for the command in the collection
-  if (!command) return;
+//   // Exit function if there was no data for the command in the collection
+//   if (!command) return;
 
-  try {
-    await command.execute(interaction);
-  }
-  catch (error) {
-    console.error(error);
-    await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-  }
-});
-
+//   try {
+//     await command.execute(interaction);
+//   } catch (error) {
+//     console.error(error);
+//     await interaction.reply({
+//       content: 'There was an error while executing this command!',
+//       ephemeral: true,
+//     });
+//   }
+// });
 
 // Login to Discord with your client's token
 client.login(DISCORD_TOKEN);
